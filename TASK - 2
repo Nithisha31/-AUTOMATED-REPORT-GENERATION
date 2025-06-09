@@ -1,0 +1,92 @@
+import csv
+from fpdf import FPDF
+import datetime # Add this import
+
+def generate_automated_report(input_file="sample_data.csv", output_pdf="sales_report.pdf"):
+    """
+    Reads data from a CSV file, performs basic analysis, and generates a PDF report.
+
+    Args:
+        input_file (str): Path to the input CSV data file.
+        output_pdf (str): Name of the output PDF report file.
+    """
+    data = []
+    try:
+        with open(input_file, mode='r', newline='') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                data.append(row)
+        print(f"Successfully read data from {input_file}")
+    except FileNotFoundError:
+        print(f"Error: The file '{input_file}' was not found.")
+        return
+    except Exception as e:
+        print(f"An error occurred while reading the file: {e}")
+        return
+
+    # --- Data Analysis (Simple Example: Count sales per product) ---
+    product_sales = {}
+    total_sales = 0
+    for row in data:
+        try:
+            product = row.get('Product')
+            # Use float() if sales can have decimals, otherwise int() is fine
+            sales = float(row.get('Sales', 0)) # Changed to float for more generality
+            if product:
+                product_sales[product] = product_sales.get(product, 0) + sales
+                total_sales += sales
+        except ValueError:
+            print(f"Warning: Could not convert sales value to numeric for row: {row}")
+            continue
+
+    # --- Report Generation using FPDF ---
+    pdf = FPDF()
+    pdf.add_page()
+
+    # Set font and title
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Sales Performance Report", 0, 1, 'C')
+    pdf.ln(10) # Add some space
+
+    # Summary
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 10, f"Total Sales Across All Products: ${total_sales:,.2f}", 0, 1) # Added formatting
+    pdf.ln(5)
+
+    # Product-wise Sales
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, "Sales Breakdown by Product:", 0, 1)
+    pdf.set_font("Arial", "", 12)
+
+    if product_sales:
+        for product, sales in product_sales.items():
+            pdf.cell(0, 7, f"- {product}: ${sales:,.2f}", 0, 1) # Added formatting
+    else:
+        pdf.cell(0, 7, "No product sales data available for breakdown.", 0, 1)
+
+    # Add a footer
+    pdf.ln(15)
+    pdf.set_font("Arial", "I", 10)
+    # Use the imported datetime module
+    pdf.cell(0, 10, f"Report generated on {datetime.date.today()}", 0, 0, 'R')
+
+    pdf.output(output_pdf)
+    print(f"Report generated successfully: {output_pdf}")
+
+# Corrected the _name_ block
+if __name__ == "_main_":
+    # Create a dummy sample_data.csv for testing if it doesn't exist
+    try:
+        with open("sample_data.csv", "w", newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(["Product", "Sales"])
+            writer.writerow(["Laptop", 1200])
+            writer.writerow(["Mouse", 25])
+            writer.writerow(["Keyboard", 75])
+            writer.writerow(["T-shirt", 20])
+            writer.writerow(["Jeans", 50])
+        print("Created dummy 'sample_data.csv' for demonstration.")
+    except Exception as e:
+        print(f"Could not create dummy CSV: {e}")
+
+    generate_automated_report()
